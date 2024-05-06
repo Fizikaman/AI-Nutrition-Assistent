@@ -10,7 +10,7 @@ memory = config.MEMORY_DICT  # словарь для хранения ответ
 logger = logging.getLogger(__name__)
 
 
-async def ans_from_gpt(user_id, prompt):
+async def ans_from_gpt(user_id: int, prompt: str) -> str:
     """Функция для взаимодействия с openai через API"""
     # проверка пользователя по id_tg и запись вопроса пользователя
     if user_id not in memory:
@@ -27,27 +27,34 @@ async def ans_from_gpt(user_id, prompt):
         thread_id=thread.id, assistant_id=config.ASS_ID
     )
 
-    while True:
-        run = await client.beta.threads.runs.retrieve(
-            thread_id=thread.id, run_id=run.id
-        )
-
-        if run.status == "completed":
-            logger.info("done")
-            message_response = await client.beta.threads.messages.list(
-                thread_id=thread.id
+    try:
+        while True:
+            run = await client.beta.threads.runs.retrieve(
+                thread_id=thread.id, run_id=run.id
             )
-            messages = message_response.data
-            latest_message = messages[0]
-            answer = latest_message.content[0].text.value
-            memory[user_id].append({"role": "user", "content": answer})
-            break
 
+            if run.status == "completed":
+                logger.info("done")
+                message_response = await client.beta.threads.messages.list(
+                    thread_id=thread.id
+                )
+                messages = message_response.data
+                latest_message = messages[0]
+                answer = latest_message.content[0].text.value
+                memory[user_id].append({"role": "user", "content": answer})
+                break
+
+            else:
+                await asyncio.sleep(3)
+
+        # очистка списка по одной паре вопрос/ответ
+        if len(memory[user_id]) > 12:
+            del memory[user_id][0:2]
+        return answer
+
+    except Exception as e:
+        if type(e).__name__ == "BadRequestError":
+            del memory[user_id]
         else:
-            await asyncio.sleep(3)
-
-    # очистка списка по одной паре вопрос/ответ
-    if len(memory[user_id]) > 12:
-        del memory[user_id][0:2]
-
-    return answer
+            raise e
+        logger.info(f"Error: {e}.")

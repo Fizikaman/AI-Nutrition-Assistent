@@ -1,16 +1,19 @@
 import base64
+import logging
 
 from openai import AsyncOpenAI
 
 import config
 
-memory = config.MEMORY_DICT  # словарь для хранения ответов
+memory = config.MEMORY_DICT
 client = AsyncOpenAI(api_key=config.CHAT_GPT_TOKEN)
+logger = logging.getLogger(__name__)
 
 
 async def process(prompt, user_id, image_content=None) -> str:
     model = "gpt-3.5-turbo"
     max_tokens = None
+    logger.info(f"User_id: {user_id}.")
 
     if user_id not in memory:
         memory[user_id] = []
@@ -45,3 +48,4 @@ async def process(prompt, user_id, image_content=None) -> str:
             del memory[user_id]
         else:
             raise e
+        logger.info(f"Error: {e}.")
