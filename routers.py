@@ -108,3 +108,9 @@ async def photo_explain(message, bot: Bot):
     except Exception as e:
         await message.reply("Произошла ошибка, попробуйте позже!")
         logger.info(f"Error: {e}.")
+
+
+@router.message()
+async def cant_process(message: types.Message):
+    """Для отлавливания других типов файлов, чтобы не ломать бота"""
+    await message.reply("Увы😔 На данный момент я не могу работать с этим типом файла😔")
